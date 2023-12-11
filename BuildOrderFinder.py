@@ -2,28 +2,40 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import time
+import numpy
 
 base = "https://liquipedia.net"
-ext = "/starcraft/Category:Terran_Build_Orders"
-#url = "https://liquipedia.net/starcraft/Category:Terran_Build_Orders"
-tableTestUrl = "https://liquipedia.net/starcraft/1_Rax_FE_(vs._Protoss)"
-listTestUrl = "https://liquipedia.net/starcraft/2_Port_Wraith"
+terran = "/starcraft/Category:Terran_Build_Orders"
+protoss = "/starcraft/Category:Protoss_Build_Orders"
+zerg = "/starcraft/Category:Zerg_Build_Orders"
 
-url = base + ext
-def  getPage(url):
 
-    response = requests.get(url)
+
+
+
+
+
+
+def main():
+    current = terran
+    sites = getListOfBuilds(current)
+    for site in sites:
+        print(getBuild(site, "terran"))
+
+
+
+def getPage(ext):
+
+    response = requests.get(base+ext)
 
     return response.text
 
 
-
-
-
-def getListOfBuilds (url):
+def getListOfBuilds(ext):
 
     builds = []
-    page = getPage(url)
+    page = getPage(ext)
+    print(f"Arrived at {ext}")
     soup = BeautifulSoup(page, 'html.parser')
     #Finds block full of links
     listBlock = soup.find('div', class_="mw-content-ltr")
@@ -34,41 +46,73 @@ def getListOfBuilds (url):
     else:
         print("Couldn't find block")
         return
-        
-#print(getListOfBuilds(url))
-sites = getListOfBuilds(base+ext)
 
-def getBuildOrder():
-    i=1
+def getBuild(site, race):
     header = None
     notations = []
     references = []
-    for site in sites:
-        tic = time.perf_counter()
-        page = getPage(base+site)
-        soup = BeautifulSoup(page, 'html.parser')
-        buildTable = soup.find("table", class_="wikitable collapsible")
-        if buildTable == None:
-            pass
+    page = getPage(base+site)
+    soup = BeautifulSoup(page, 'html.parser')
+    buildTable = soup.find("table", class_="wikitable collapsible")
+    if buildTable != None:
+        contents = buildTable.find_all(["tr"])
+
+        #The first row is always the title (not nullable)
+        header = contents[0].get_text()
+
+        #The second to last row is usually references (nullable)
+        references = parseReferences(contents[-2])
+
+        #The second row is always the notations (not nullable)
+        notations = parseNotations(contents[1])
+
+        jsonDict =  {
+                        "title":header,
+                        "race": race,
+                        "notations":notations,
+                        "references":references
+                    }
+        return jsonDict
+    else:
+        print(f"Table not found at {page}")
+
+
+def parseNotations(notations):
+    #Gets the table cell that holds all the notations
+
+    #Array of arrays to store build order
+    #2D Array 
+    entries = numpy.array()
+    for entry in notations.find_all('ul'):
+
+        #Array to append to entries
+        uls = []
+
+        #Each list is checked to see if it's a boilerplate build order (list) or has variations (dt)
+
+        #If cell header found, label the array with "dt" for cell
+        if entry.find_previous_sibling('dl'):
+            uls.append("dt")
+            uls.append(entry.find_previous_sibling('dl').get_text())
         else:
-            contents = buildTable.find_all(["tr"])
-            header = contents[0].get_text()
-            tutorialLink = contents[-1].get_text()
-            references = contents[-2].get_text()
-            notations = contents[1]
-            splits = notations.find_all("tr")
-            print(f"{len(splits)} at {site}")
-            
+            #Normal list gets list label
+            uls.append("list")
+        #Converts resultset to string
+        for line in entry.find_all('li'):
+            uls.append(line)
 
-            i+=1
-    print(i)
+    entries.append(uls)
+    return entries
 
-
-        #toc = time.perf_counter()
-        #print(f"Got page {base+site} in {toc - tic:0.4f} seconds")
-            
-
-    
+        
+def parseReferences(references):
+    entries = []
+    for entry in references.find('li'):
+        entries.append(entry.get_text())
+    return entries
 
 
-getBuildOrder()
+
+
+if __name__ == '__main__':
+    main()
