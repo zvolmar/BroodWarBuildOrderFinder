@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
+import json
 import re
 import time
 import numpy
@@ -11,47 +12,67 @@ zerg = "/starcraft/Category:Zerg_Build_Orders"
 
 
 
+#Builds that need manual formatting:
+# 3 Factory Goliaths/5 Factory Goliaths (nested lists)
+# 4 Barracks Sunken Break (table cell headers are p, not dl)
+# Deep Six (has three dl lists but only the first two are displayed in-line)
+# Fake Fake Double Build (table cell headers are p, not dl)
+# Hiya Four Factory (this one's a mess)
 
-
-
+#Blacklist
+# TVPBuilds
+# Terran Strategy
 
 
 def main():
     current = terran
     sites = getListOfBuilds(current)
+    i = 0
     for site in sites:
-        print(getBuild(site, "terran"))
+        print(f"{i}: {site}")
+        i+=1
+    for site in sites:
+        post = getBuild(site, "terran")
+        if post != None:
+            print(post)
+            #pass
+            
+            
 
-
-
-def getPage(ext):
-
-    response = requests.get(base+ext)
-
-    return response.text
 
 
 def getListOfBuilds(ext):
-
+    blacklist = ["/starcraft/Terran_Strategy", "/starcraft/TVPBuilds"]
     builds = []
     page = getPage(ext)
-    print(f"Arrived at {ext}")
     soup = BeautifulSoup(page, 'html.parser')
     #Finds block full of links
     listBlock = soup.find('div', class_="mw-content-ltr")
     if listBlock is not None:
         for link in listBlock.find_all('a'):
-            builds.append(link.get("href"))
+            print(link)
+            if link.get("href") not in blacklist:
+                builds.append(link.get("href"))
         return builds
     else:
-        print("Couldn't find block")
+        print(f"Couldn't find block at {ext}")
         return
+
+
+
+def getPage(ext):
+    response = requests.get(base+ext)
+    stuff = response.text
+    response.close()
+    return stuff
+
+
 
 def getBuild(site, race):
     header = None
     notations = []
     references = []
-    page = getPage(base+site)
+    page = getPage(site)
     soup = BeautifulSoup(page, 'html.parser')
     buildTable = soup.find("table", class_="wikitable collapsible")
     if buildTable != None:
@@ -61,7 +82,8 @@ def getBuild(site, race):
         header = contents[0].get_text()
 
         #The second to last row is usually references (nullable)
-        references = parseReferences(contents[-2])
+        if contents[-2] != None:
+            references = parseReferences(contents[-2])
 
         #The second row is always the notations (not nullable)
         notations = parseNotations(contents[1])
@@ -72,9 +94,11 @@ def getBuild(site, race):
                         "notations":notations,
                         "references":references
                     }
-        return jsonDict
+        obj = json.dumps(jsonDict, indent=4, separators=(',',':'))
+        return obj
     else:
-        print(f"Table not found at {page}")
+        return
+
 
 
 def parseNotations(notations):
@@ -82,7 +106,7 @@ def parseNotations(notations):
 
     #Array of arrays to store build order
     #2D Array 
-    entries = numpy.array()
+    entries = []
     for entry in notations.find_all('ul'):
 
         #Array to append to entries
@@ -99,18 +123,20 @@ def parseNotations(notations):
             uls.append("list")
         #Converts resultset to string
         for line in entry.find_all('li'):
-            uls.append(line)
+            uls.append(line.get_text())
 
-    entries.append(uls)
+        entries.append(uls)
     return entries
+
 
         
 def parseReferences(references):
     entries = []
-    for entry in references.find('li'):
-        entries.append(entry.get_text())
+    i=1
+    for entry in references.find_all('span', class_="reference-text"):
+        entries.append(f"{i}: {entry.get_text()}")
+        i+=1
     return entries
-
 
 
 
