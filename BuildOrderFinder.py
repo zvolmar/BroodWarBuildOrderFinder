@@ -5,6 +5,8 @@ import re
 import time
 import numpy
 
+
+
 base = "https://liquipedia.net"
 terran = "/starcraft/Category:Terran_Build_Orders"
 protoss = "/starcraft/Category:Protoss_Build_Orders"
@@ -14,14 +16,14 @@ zerg = "/starcraft/Category:Zerg_Build_Orders"
 
 #Builds that need manual formatting:
 # 3 Factory Goliaths/5 Factory Goliaths (nested lists)
-# 4 Barracks Sunken Break (table cell headers are p, not dl)
 # Deep Six (has three dl lists but only the first two are displayed in-line)
-# Fake Fake Double Build (table cell headers are p, not dl)
+# Fake Fake Double Build (p element at end of list, not part of list)
 # Hiya Four Factory (this one's a mess)
 
 #Blacklist
 # TVPBuilds
 # Terran Strategy
+
 
 
 def main():
@@ -36,8 +38,7 @@ def main():
         if post != None:
             print(post)
             #pass
-            
-            
+    print("Finished")
 
 
 
@@ -86,7 +87,7 @@ def getBuild(site, race):
             references = parseReferences(contents[-2])
 
         #The second row is always the notations (not nullable)
-        notations = parseNotations(contents[1])
+        notations = parseTableNotations(contents[1])
 
         jsonDict =  {
                         "title":header,
@@ -97,11 +98,12 @@ def getBuild(site, race):
         obj = json.dumps(jsonDict, indent=4, separators=(',',':'))
         return obj
     else:
-        return
+        header = soup.find("span", id="Build_Order")
+        ul = header.find_next_sibling("ul")
 
 
 
-def parseNotations(notations):
+def parseTableNotations(notations):
     #Gets the table cell that holds all the notations
 
     #Array of arrays to store build order
@@ -115,9 +117,9 @@ def parseNotations(notations):
         #Each list is checked to see if it's a boilerplate build order (list) or has variations (dt)
 
         #If cell header found, label the array with "dt" for cell
-        if entry.find_previous_sibling('dl'):
+        if entry.find_previous_sibling('dl') or entry.find_previous_sibling('p'):
             uls.append("dt")
-            uls.append(entry.find_previous_sibling('dl').get_text())
+            uls.append(entry.find_previous_sibling().get_text())
         else:
             #Normal list gets list label
             uls.append("list")
@@ -129,7 +131,7 @@ def parseNotations(notations):
     return entries
 
 
-        
+
 def parseReferences(references):
     entries = []
     i=1
@@ -137,6 +139,14 @@ def parseReferences(references):
         entries.append(f"{i}: {entry.get_text()}")
         i+=1
     return entries
+
+def parseListNotations(notations):
+    entries = []
+    for entry in notations.find_all("li"):
+        entries.append(entry.get_text())
+    return entries
+
+
 
 
 
