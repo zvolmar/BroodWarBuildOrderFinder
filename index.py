@@ -4,46 +4,14 @@ import json
 import re
 import time
 import numpy
+import main
 
 
 
-base = "https://liquipedia.net"
-terran = "/starcraft/Category:Terran_Build_Orders"
-protoss = "/starcraft/Category:Protoss_Build_Orders"
-zerg = "/starcraft/Category:Zerg_Build_Orders"
 
+def getListOfBuilds(ext,blacklist):
+  
 
-
-#Builds that need manual formatting:
-# 3 Factory Goliaths/5 Factory Goliaths (nested lists)
-# Deep Six (has three dl lists but only the first two are displayed in-line)
-# Fake Fake Double Build (p element at end of list, not part of list)
-# Hiya Four Factory (this one's a mess)
-
-#Blacklist
-# TVPBuilds
-# Terran Strategy
-
-
-
-def main():
-    current = terran
-    sites = getListOfBuilds(current)
-    i = 0
-    for site in sites:
-        print(f"{i}: {site}")
-        i+=1
-    for site in sites:
-        post = getBuild(site, "terran")
-        if post != None:
-            print(post)
-            #pass
-    print("Finished")
-
-
-
-def getListOfBuilds(ext):
-    blacklist = ["/starcraft/Terran_Strategy", "/starcraft/TVPBuilds"]
     builds = []
     page = getPage(ext)
     soup = BeautifulSoup(page, 'html.parser')
@@ -51,7 +19,6 @@ def getListOfBuilds(ext):
     listBlock = soup.find('div', class_="mw-content-ltr")
     if listBlock is not None:
         for link in listBlock.find_all('a'):
-            print(link)
             if link.get("href") not in blacklist:
                 builds.append(link.get("href"))
         return builds
@@ -62,7 +29,7 @@ def getListOfBuilds(ext):
 
 
 def getPage(ext):
-    response = requests.get(base+ext)
+    response = requests.get(main.base+ext)
     stuff = response.text
     response.close()
     return stuff
@@ -70,13 +37,17 @@ def getPage(ext):
 
 
 def getBuild(site, race):
+    print(site)
     header = None
     notations = []
     references = []
     page = getPage(site)
     soup = BeautifulSoup(page, 'html.parser')
+    header = site.replace("/starcraft/", '')
+    header = site.replace("_", '')
     buildTable = soup.find("table", class_="wikitable collapsible")
     if buildTable != None:
+        pass
         contents = buildTable.find_all(["tr"])
 
         #The first row is always the title (not nullable)
@@ -89,17 +60,18 @@ def getBuild(site, race):
         #The second row is always the notations (not nullable)
         notations = parseTableNotations(contents[1])
 
-        jsonDict =  {
-                        "title":header,
-                        "race": race,
-                        "notations":notations,
-                        "references":references
-                    }
-        obj = json.dumps(jsonDict, indent=4, separators=(',',':'))
-        return obj
+        
     else:
-        header = soup.find("span", id="Build_Order")
-        ul = header.find_next_sibling("ul")
+        span = soup.find("span", id="Build_Order")
+        h = span.find_parent()
+        ul = h.find_next_sibling("ul")
+        notations = parseListNotations(ul)
+
+
+
+    print(handleJSON(header, race, notations, references))
+    
+
 
 
 
@@ -146,9 +118,23 @@ def parseListNotations(notations):
         entries.append(entry.get_text())
     return entries
 
+def getBlacklist(path):
+    blacklist = []
+    file = open(path,'r')
+    while True:
+        line = file.readline()
+        if not line:
+            break
+        blacklist.append(line.strip())
+    return blacklist
 
 
-
-
-if __name__ == '__main__':
-    main()
+def handleJSON(head, race, nota, ref):
+        jsonDict =  {
+                        "title":head,
+                        "race": race,
+                        "notations":nota,
+                        "references":ref
+                    }
+        obj = json.dumps(jsonDict, indent=4, separators=(',',':'))
+        return obj
