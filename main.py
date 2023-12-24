@@ -1,9 +1,3 @@
-from bs4 import BeautifulSoup
-import requests
-import json
-import re
-import time
-import numpy
 import index as ind
 
 
@@ -31,7 +25,7 @@ zerg = ["zerg", "/starcraft/Category:Zerg_Build_Orders", "blacklists/zerg.txt"]
 
 
 def main():
-    current = zerg
+    current = terran
     blacklist = ind.getBlacklist(current[2])
     sites = ind.getListOfBuilds(current[1],blacklist)
     for site in sites:
@@ -39,9 +33,6 @@ def main():
         if post != None:
             print(post)
     print("Finished")
-
-
-
 
 
 

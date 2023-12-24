@@ -1,4 +1,3 @@
-/starcraft/2_Factory_Builds
 /starcraft/6_Fac_Timing_Push
 /starcraft/8_Rax_(vs._Zerg)
 /starcraft/Barracks_Barracks_Supply_(vs._Terran)
@@ -11,7 +10,6 @@
 /starcraft/Bunker_Rush_(vs._Zerg)
 /starcraft/Fact_CC_Fact
 /starcraft/Fast_Expand_(Terran)
-/starcraft/Iloveoov_Fake_Mech
 /starcraft/Late_mechanic
 /starcraft/Protoss_Fast_Expand_And_Tech
 /starcraft/SCV_Rush

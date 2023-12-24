@@ -1,9 +1,7 @@
-/starcraft/2_Gate_DT_(vs._Protoss)
 /starcraft/Big_Game_Hunters/PP_match_ups
 /starcraft/Big_Game_Hunters/Protoss_Guide
 /starcraft/Corsair/Carrier_(vs._Zerg)
 /starcraft/Corsair/Reaver_(vs._Zerg)
-/starcraft/Fast_Expand_(vs._Terran)
 /starcraft/Horror_Gate
 /starcraft/Plus1_Zealot/Archon_Timing_Attack_(vs._Zerg)
 /starcraft/Protoss_BGH_Build
